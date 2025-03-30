@@ -1,4 +1,4 @@
-function [nextState,volume,surfaceArea] = stepState(curState,fixedMask,defaultVal,wearRate,mode)
+function [nextState,volume,surfaceArea] = stepState(curState,fixedMask,defaultVal,wearRate,randIgn,mode)
 %stepState progresses the state of an NxN array one, following decay
 %   stepState uses neighboring cell weights to calculate the delta of a
 %   cell, then multiplies it by a mask of fixed points, and subtracts it
@@ -22,6 +22,10 @@ function [nextState,volume,surfaceArea] = stepState(curState,fixedMask,defaultVa
 % wearRate is a coefficient that all value deltas are multiplied by, the
 % default value should be 1, higher values lead to faster erosion. Unsure
 % how much this affects accuracy/performance
+
+% randIgn is a logical value that can be used to speed up computations at
+% the cost of replacing all random values with 0.5. If you don't mind your
+% computations being deterministic, this could be worth it
 
 % mode is the mode of calculation used for the calculations, there is
 % three options, with different uses.
@@ -56,20 +60,25 @@ if mode == "VECTOR"
 
     %Wear calculations
 
-
-    randTable = rand(size(curState)); %This can probably be sped up a lot
+    if randIgn == false
+        randTable = rand(size(curState)); %This can probably be sped up a lot
+    end
 
     curWeights = calculateNeighborWeightsVec(curState,defaultVal);
     
     maxWeight = defaultVal * 8; 
     curPers = ((maxWeight-curWeights)/maxWeight); %Calculates % of 
     % surroundings eroded
-
-    curDeltasPreRand = curPers.*curState.*randTable; %Multiplies the percentage
+    
+    if randIgn == false
+        curDeltas = curPers.*curState.*randTable; %Multiplies the percentage
     % of surroundings eroded by the value at that array, then a random
     % value
+    else
+        curDeltas = curPers.*curState*0.5;
+    end
 
-    curDeltas = curDeltasPreRand * wearRate; %Multiplies by wearRate
+    curDeltas = curDeltas * wearRate; %Multiplies by wearRate
 
     trueDeltas = curDeltas.*(~fixedMask); %CHECK IF DOING THIS BEFORE OR AFTER MAKES PERF DIF
 
@@ -99,20 +108,29 @@ elseif mode == "GPU"
     %replaces the rand function at the start with a gpuArray generated
     %table
 
+    %For reasons I do not yet understand, this tends to be slower than the
+    %vector mode now that I've fully integrated in code, even though it was
+    %faster in standalone testing.
+
     %Wear calculations
 
-
-    randTable = gpuArray.rand(size(curState));
+    if randIgn == false
+        randTable = gpuArray.rand(size(curState));
+    end
 
     curWeights = calculateNeighborWeightsGPU(curState,defaultVal);
     
     maxWeight = defaultVal * 8; 
     curPers = ((maxWeight-curWeights)/maxWeight); %Calculates % of 
     % surroundings eroded
-
-    curDeltasPreRand = curPers.*curState.*randTable; %Multiplies the percentage
+    
+    if randIgn == false
+        curDeltasPreRand = curPers.*curState.*randTable; %Multiplies the percentage
     % of surroundings eroded by the value at that array, then a random
     % value
+    else
+        curDeltasPreRand = curPers.*curState*0.5;
+    end
 
     curDeltas = curDeltasPreRand * wearRate; %Multiplies by wearRate
 

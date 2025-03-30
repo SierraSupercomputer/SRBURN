@@ -1,4 +1,4 @@
-function [states,volume,surfaceArea,time,steps] = runBurnSimNxN(sizeN,coreMask,fixedMask,defaultVal,timeout,estVals,heartbeat,mode)
+function [states,volume,surfaceArea,time,steps] = runBurnSimNxN(sizeN,coreMask,fixedMask,defaultVal,timeout,estVals,heartbeat,randIgn,saveVideo,mode)
 %runBurnSimNxN use the stepState function to run a simulation of cell decay
 %   runBurnSimNxN, by default, uses the vectorized CPU version of stepState
 %   to run a simulation of cell decay until the total value of all cells,
@@ -41,6 +41,14 @@ function [states,volume,surfaceArea,time,steps] = runBurnSimNxN(sizeN,coreMask,f
     % Enabling this likely slows down the program on smaller array sizes,
     % but has a minimal impact on larger array sizes.
 
+    % saveVideo is a boolean logical input, if set to true, the simulation
+    % will create a NxNxM array of all states during the simulation and
+    % output it, this can be played back using the imagesc function.
+    % Turning this off means you will be unable to visualize your data, but
+    % surface area and volume calculations will still work. Turning this
+    % off also speeds up the code significantly. If disabled, the function
+    % will return an empty array for the states value
+
     % mode is the mode of calculation used for the calculations, there is
     % three options, with different uses.
 
@@ -82,34 +90,46 @@ stateTable = stateTable.*(~coreMask);
 fixedVol = sum(fixedMask,"all")*defaultVal;
 
 %Create values for loop tracking
-states = [];
 
-outVals = zeros([2,estVals]);
+if saveVideo
+    states = zeros([size(stateTable), estVals], 'like', stateTable); % Same type as input
+else
+    states = [];
+end
+
+outVals = zeros(2, estVals);
+
 volume = fixedVol + 1;
 simtime = tic;
 track = 1;
 
 while round(volume) > fixedVol && track <= timeout
-    states = cat(3,states,stateTable);
-    [stateTable,volume,surface] = stepState(stateTable,fixedMask,defaultVal,1,mode);
-    outvals(1,track) = volume;
-    outvals(2,track) = surface;
+    % Store current state in preallocated array
+    if saveVideo
+        states(:,:,track) = stateTable;
+    end
+    
+    % Update simulation
+    [stateTable, volume, surface] = stepState(stateTable, fixedMask, defaultVal, 1, randIgn, mode);
+    outVals(1,track) = volume;
+    outVals(2,track) = surface;
+    
     track = track + 1;
     if heartbeat
-        fprintf("step %d complete.\n",track)
+        fprintf("Step %d complete (Volume: %.2f)\n", track-1, volume);
     end
 end
 
-%trimming output
+% Trim unused preallocated space
+if saveVideo
+    states = states(:,:,1:track-1);
+end
+outVals = outVals(:,1:track-1);
 
-states = states(:,:,any(any(states,1),2));
+volume = outVals(1,:);
+surfaceArea = outVals(2,:);
 
-steps = size(states,3);
-
-outvals = outvals(:,1:steps);
-
-volume = outvals(1,:);
-surfaceArea = outvals(2,:);
+steps = size(outVals,2);
 
 time = toc(simtime);
 
