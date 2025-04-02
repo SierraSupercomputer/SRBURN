@@ -1,6 +1,13 @@
 # SRBURN
 A MATLAB based SRB Burn simulator with thrust and weight calculations
 
+Required Toolboxes:
+
+For GPU Enabled code: Parallel Computing Toolbox
+For mask generation functions: Image Processing Toolbox (Working on a version that doesn't need this)
+
+GET STARTED:
+
 simDemonstration is a demo file with all the necessary code and function calls to run an SRB burn simulation. The configs are below:
 sizeN = integer, Size of the square array, this can be even or odd, it doesn't really matter. High values drastically increase computation time, I'd recommend starting on a smaller size to ensure your sim is configured as you expect
 defaultVal = integer, this doesn't actually change anything in this version of code, as long as it's not zero or negative you're fine
