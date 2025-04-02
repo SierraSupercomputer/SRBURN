@@ -1,5 +1,5 @@
 # SRBURN
-A MATLAB based SRB Burn simulator with thrust and weight calculations
+A MATLAB based SRB Burn simulator with thrust and weight calculations, for evaluating motor core geometry.
 
 Required Toolboxes:
 
@@ -29,9 +29,14 @@ This program offers three computation modes:
     toolkits to use. 
 
     "NONVECTOR" utilizes the most basic processing, this is the slowest by
-    far, but may be useful for debugging purposes.
+    far, but may be useful for debugging purposes. This doesn't support 
+    kernel configuration either, and defaults to the hollow ones array.
 
 Selecting this as a config will use that computation mode. This mostly changes the convolution method for calculating wear rates based on surrounding cells, but also changes the behavior of random number generation when randIgn is set to false
+
+![image](https://github.com/user-attachments/assets/0525673c-53b5-4d52-a2ca-ecfc33c5f296)
+This graph shows the time per simulation of the GPU and Vector mode at a size N, given a core geometry of a single zero point at the center of the array.
+The blue line is the Vector mode, the red line is the GPU mode. This was ran on a Ryzen 5500 and RTX 2070
 
 IMPORTANT NOTE: This program has no checking for GPU capability or memory, it will not gracefully crash and I can make no guarantees of the behavior of the GPU code. I tested it on an RTX 2070 and ran into system RAM issues before I ran into VRAM issues. Your mileage may vary. If you encounter issues, let me know and I can try to fix them.
 
@@ -93,12 +98,12 @@ CONFIGS
     speeds up execution dramatically, and it'll probably get you the same
     results (or similar) as if not using it.
 
-    mode is a string, specifying which of the three compute mode options
-    to use for this simulation
-
     wearRate is a decimal that is multiplied by all wear deltas, increasing
     this will speed up the sim, default value is 1 (This has weird behavior
     if over 1 right now, I don't know why yet...)
+
+    mode is a string, specifying which of the three compute mode options
+    to use for this simulation
 
 
 OUTPUTS
