@@ -31,7 +31,7 @@ coreMask = generateStarMask(sizeN/10,sizeN/4,sizeN,16,0,0);
 fprintf("Finished in %.2f seconds and %d steps.\n",time,steps);
 
 %plays the video, if enabled
-if saveVideo == true
+if configArgs.saveVideo == true
     fprintf("Playing animation\n")
     for i = 1:size(states,3)
         frame = states(:,:,i) + fixedMask;
