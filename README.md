@@ -35,8 +35,13 @@ This program offers three computation modes:
 Selecting this as a config will use that computation mode. This mostly changes the convolution method for calculating wear rates based on surrounding cells, but also changes the behavior of random number generation when randIgn is set to false
 
 ![image](https://github.com/user-attachments/assets/0525673c-53b5-4d52-a2ca-ecfc33c5f296)
+
 This graph shows the time per simulation of the GPU and Vector mode at a size N, given a core geometry of a single zero point at the center of the array.
 The blue line is the Vector mode, the red line is the GPU mode. This was ran on a Ryzen 5500 and RTX 2070
+
+![image](https://github.com/user-attachments/assets/03e5475b-587e-40a7-84c3-23937de68d9f)
+
+This is the same graph, just on a larger scale
 
 IMPORTANT NOTE: This program has no checking for GPU capability or memory, it will not gracefully crash and I can make no guarantees of the behavior of the GPU code. I tested it on an RTX 2070 and ran into system RAM issues before I ran into VRAM issues. Your mileage may vary. If you encounter issues, let me know and I can try to fix them.
 
