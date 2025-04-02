@@ -1,4 +1,4 @@
-function [nextState,volume,surfaceArea] = stepState(curState,fixedMask,defaultVal,wearRate,randIgn,mode)
+function [nextState,volume,surfaceArea] = stepState(curState,fixedMask,kernel,configArgs)
 %stepState progresses the state of an NxN array one, following decay
 %   stepState uses neighboring cell weights to calculate the delta of a
 %   cell, then multiplies it by a mask of fixed points, and subtracts it
@@ -32,14 +32,16 @@ function [nextState,volume,surfaceArea] = stepState(curState,fixedMask,defaultVa
 
     % "GPU" utilizes your system's GPU to accelerate matrix processing,
     % this may be the faster option, particularly for very large arrays
-    % but requires the associated toolkit and hardware
-
+    % but requires the associated toolkit and hardware.
+    % 
     % "VECTOR" utilizes vectorized processing, but still processes the
     % values on CPU, this is usually the fastest, and doesn't require any
     % toolkits to use. 
-
+    % 
     % "NONVECTOR" utilizes the most basic processing, this is the slowest by
-    % far, but may be useful for debugging purposes. 
+    % far, but may be useful for debugging purposes. This also cannot
+    % properly utilize kernel passthrough, and defaults to the hollow ones
+    % array.
 
 % OUTPUTS
 
@@ -55,147 +57,53 @@ function [nextState,volume,surfaceArea] = stepState(curState,fixedMask,defaultVa
 % surrounded by at least one cell with a value less than the default value
 % provided, this is done for the initial step.
 
-
-if mode == "VECTOR"
-
-    %Wear calculations
-
-    if randIgn == false
-        randTable = rand(size(curState)); %This can probably be sped up a lot
-    end
-
-    curWeights = calculateNeighborWeightsVec(curState,defaultVal);
-    
-    maxWeight = defaultVal * 8; 
-    curPers = ((maxWeight-curWeights)/maxWeight); %Calculates % of 
-    % surroundings eroded
-    
-    if randIgn == false
-        curDeltas = curPers.*curState.*randTable; %Multiplies the percentage
-    % of surroundings eroded by the value at that array, then a random
-    % value
-    else
-        curDeltas = curPers.*curState*0.5;
-    end
-
-    curDeltas = curDeltas * wearRate; %Multiplies by wearRate
-
-    trueDeltas = curDeltas.*(~fixedMask); %CHECK IF DOING THIS BEFORE OR AFTER MAKES PERF DIF
-
-    nextState = curState-trueDeltas;
-
-
-    %Volume calculations
-
-
-    volume = sum(curState,"all");
-
-
-    %Surface area calculations
-
-
-    liveCells = round(curState) == defaultVal; %Makes a bit mask of cells with a mass of 5
-    exposedCells = round(curWeights) < maxWeight; %And where there is exposure
-
-    surface = and(and(liveCells,exposedCells),not(fixedMask));
-
-    surfaceArea = sum(surface,"all");
-    
-elseif mode == "GPU"
-
-    %This code is nearly identical to the vectorized version, except it
-    %uses the GPU version of the calculatedNeighborWeights function, and
-    %replaces the rand function at the start with a gpuArray generated
-    %table
-
-    %For reasons I do not yet understand, this tends to be slower than the
-    %vector mode now that I've fully integrated in code, even though it was
-    %faster in standalone testing.
-
-    %Wear calculations
-
-    if randIgn == false
+if configArgs.randIgn == false
+    if configArgs.mode == "GPU"
         randTable = gpuArray.rand(size(curState));
-    end
-
-    curWeights = calculateNeighborWeightsGPU(curState,defaultVal);
-    
-    maxWeight = defaultVal * 8; 
-    curPers = ((maxWeight-curWeights)/maxWeight); %Calculates % of 
-    % surroundings eroded
-    
-    if randIgn == false
-        curDeltasPreRand = curPers.*curState.*randTable; %Multiplies the percentage
-    % of surroundings eroded by the value at that array, then a random
-    % value
     else
-        curDeltasPreRand = curPers.*curState*0.5;
+        randTable = rand(size(curState));
     end
-
-    curDeltas = curDeltasPreRand * wearRate; %Multiplies by wearRate
-
-    trueDeltas = curDeltas.*(~fixedMask); %CHECK IF DOING THIS BEFORE OR AFTER MAKES PERF DIF
-
-    nextState = curState-trueDeltas;
-
-
-    %Volume calculations
-
-
-    volume = sum(curState,"all");
-
-
-    %Surface area calculations
-
-
-    liveCells = round(curState) == defaultVal; %Makes a bit mask of cells with a mass of 5
-    exposedCells = round(curWeights) < maxWeight; %And where there is exposure
-
-    surface = and(and(liveCells,exposedCells),not(fixedMask));
-
-    surfaceArea = sum(surface,"all");
-elseif mode == "NONVECTOR"
-
-    % Identical to the vector section, except for the use of the
-    % calculateNeighborWeights function. Probably much slower
-
-    %Wear calculations
-
-
-    randTable = rand(size(curState)); %This can probably be sped up a lot
-
-    curWeights = calculateNeighborWeights(curState,defaultVal);
-    
-    maxWeight = defaultVal * 8; 
-    curPers = ((maxWeight-curWeights)/maxWeight); %Calculates % of 
-    % surroundings eroded
-
-    curDeltasPreRand = curPers.*curState.*randTable; %Multiplies the percentage
-    % of surroundings eroded by the value at that array, then a random
-    % value
-
-    curDeltas = curDeltasPreRand * wearRate; %Multiplies by wearRate
-
-    trueDeltas = curDeltas.*(~fixedMask); %CHECK IF DOING THIS BEFORE OR AFTER MAKES PERF DIF
-
-    nextState = curState-trueDeltas;
-
-
-    %Volume calculations
-
-
-    volume = sum(curState,"all");
-
-
-    %Surface area calculations
-
-
-    liveCells = round(curState) == defaultVal; %Makes a bit mask of cells with a mass of 5
-    exposedCells = round(curWeights) < maxWeight; %And where there is exposure
-
-    surface = and(and(liveCells,exposedCells),not(fixedMask));
-
-    surfaceArea = sum(surface,"all");
-else
-    error("Invalid computation mode")
 end
+
+if configArgs.mode == "VECTOR"
+    curWeights = calculateNeighborWeightsVec(curState,configArgs.defaultVal,kernel);
+elseif configArgs.mode == "GPU"
+    curWeights = calculateNeighborWeightsGPU(curState,configArgs.defaultVal,kernel);
+else
+    curWeights = calculateNeighborWeights(curState,configArgs.defaultVal);
+end
+
+maxWeight = configArgs.defaultVal * configArgs.maxVal; 
+curPers = ((maxWeight-curWeights)/maxWeight); %Calculates % of 
+% surroundings eroded
+
+if configArgs.randIgn == false
+    curDeltas = curPers.*curState.*randTable; %Multiplies the percentage
+% of surroundings eroded by the value at that array, then a random
+% value
+else
+    curDeltas = curPers.*curState*0.5;
+end
+
+curDeltas = curDeltas * configArgs.wearRate; %Multiplies by wearRate
+
+trueDeltas = curDeltas.*(~fixedMask); %CHECK IF DOING THIS BEFORE OR AFTER MAKES PERF DIF
+
+nextState = curState-trueDeltas;
+
+
+%Volume calculations
+
+
+volume = sum(curState,"all");
+
+
+%Surface area calculations
+
+
+liveCells = round(curState) == configArgs.defaultVal; %Makes a bit mask of cells with a mass of 5
+exposedCells = round(curWeights) < maxWeight; %And where there is exposure
+
+surface = and(and(liveCells,exposedCells),not(fixedMask));
+
+surfaceArea = sum(surface,"all");

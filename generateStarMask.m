@@ -8,11 +8,11 @@ function [mask] = generateStarMask(innerRad,outerRad,sizeN,points,xOffset,yOffse
 
 pointRatio = outerRad/innerRad;
 
-thetas = linspace(0, 2*pi, points+1); % Angular sampling
+thetas = linspace(0, 2*pi, (points*2)+1); % Angular sampling
 x = cos(thetas) * innerRad; % Proper scaling and centering
 y = sin(thetas) * innerRad;
 
-for i = 1:2:(points+1)
+for i = 1:2:(points*2)+1
     x(i) = x(i)*pointRatio;
     y(i) = y(i)*pointRatio;
 end
