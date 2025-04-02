@@ -48,6 +48,8 @@ INPUTS
     of a cell, but you may have unintended consquences when calculating 
     the volume and surface area
 
+CONFIGS
+
     defaultVal is the intial value of a cell, which is also the constant
     value of any cells specified in the fixedMask, this value doesn't
     actually matter with the current code, but I haven't gotten around
@@ -80,8 +82,16 @@ INPUTS
     off also speeds up the code significantly. If disabled, the function
     will return an empty array for the states value
 
+    randIgn replaces random numbers with 0.5 when calculating deltas. This
+    speeds up execution dramatically, and it'll probably get you the same
+    results (or similar) as if not using it.
+
     mode is a string, specifying which of the three compute mode options
     to use for this simulation
+
+    wearRate is a decimal that is multiplied by all wear deltas, increasing
+    this will speed up the sim, default value is 1 (This has weird behavior
+    if over 1 right now, I don't know why yet...)
 
 
 OUTPUTS
