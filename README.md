@@ -10,12 +10,19 @@ GET STARTED:
 
 simDemonstration is a demo file with all the necessary code and function calls to run an SRB burn simulation. The configs are below:
 sizeN = integer, Size of the square array, this can be even or odd, it doesn't really matter. High values drastically increase computation time, I'd recommend starting on a smaller size to ensure your sim is configured as you expect
+
 defaultVal = integer, this doesn't actually change anything in this version of code, as long as it's not zero or negative you're fine
+
 timeout = integer, Number of steps the sim will cycle through before timing out
+
 estVals = integer, Number of steps you expect the sim to use, for pre-allocation of variables
+
 heartbeat = boolean, Enabling this makes the program output each time a step is completed
+
 randIgn = boolean, Approximates random numbers as 0.5 to speed up execution
+
 saveVideo = boolean, Saves all states, then plays an animation of them here
+
 mode = Calculation mode, see below
 
 This program offers three computation modes:
